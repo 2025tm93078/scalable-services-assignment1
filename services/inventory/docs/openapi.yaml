@@ -1,0 +1,103 @@
+openapi: 3.0.3
+info:
+  title: Inventory Service
+  version: 1.0.0
+  description: Manages products, stock levels and reservations for the e-commerce checkout.
+
+servers:
+  - url: http://localhost:3001/api/v1
+
+paths:
+  /products:
+    post:
+      summary: Create a product with initial stock
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sku, name, initialStock]
+              properties:
+                sku:          { type: string }
+                name:         { type: string }
+                initialStock: { type: integer, minimum: 0 }
+      responses:
+        '201':
+          description: Product created
+        '409':
+          description: Duplicate SKU
+
+  /products/{id}/stock:
+    get:
+      summary: Get current stock for a product
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Stock level
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  productId: { type: integer }
+                  available: { type: integer }
+                  version:   { type: integer }
+        '404':
+          description: Product not found
+
+  /reservations:
+    post:
+      summary: Reserve stock for an order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderId, productId, qty]
+              properties:
+                orderId:   { type: integer }
+                productId: { type: integer }
+                qty:       { type: integer, minimum: 1 }
+      responses:
+        '201':
+          description: Reservation created
+        '409':
+          description: Insufficient stock
+
+  /reservations/{id}/confirm:
+    post:
+      summary: Confirm a reservation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Reservation confirmed
+        '404':
+          description: Reservation not found
+        '409':
+          description: Invalid state transition
+
+  /reservations/{id}/release:
+    post:
+      summary: Release a reservation and restore stock
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Reservation released
+        '404':
+          description: Reservation not found
+        '409':
+          description: Invalid state transition
