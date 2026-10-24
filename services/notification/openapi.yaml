@@ -1,0 +1,78 @@
+openapi: 3.0.3
+info:
+  title: Notification Service
+  version: 1.0.0
+  description: Mock notification provider. Stores a record and logs "sent". Only CONFIRMED orders get a notification (BR6).
+servers:
+  - url: http://localhost:3004
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200': { description: Service is up }
+  /api/v1/notifications:
+    post:
+      summary: Send a notification (mock)
+      parameters:
+        - in: header
+          name: X-Request-Id
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SendRequest' }
+      responses:
+        '201':
+          description: Notification stored and logged as sent
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Notification' }
+        '400': { description: Invalid input, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: ORDER_NOT_CONFIRMED (BR6), content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    get:
+      summary: List notifications of an order
+      parameters:
+        - in: query
+          name: orderId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Notifications for the order
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notifications:
+                    type: array
+                    items: { $ref: '#/components/schemas/Notification' }
+        '400': { description: Missing orderId, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+components:
+  schemas:
+    SendRequest:
+      type: object
+      required: [orderId, orderStatus]
+      properties:
+        orderId: { type: string, example: order-1001 }
+        type: { type: string, default: ORDER_CONFIRMED }
+        orderStatus: { type: string, example: CONFIRMED, description: Status of the order as known by the Order service }
+    Notification:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        orderId: { type: string }
+        type: { type: string }
+        status: { type: string, enum: [SENT] }
+        createdAt: { type: string, format: date-time }
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string, example: ORDER_NOT_CONFIRMED }
+            message: { type: string }
+            requestId: { type: string }
