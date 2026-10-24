@@ -1,0 +1,100 @@
+openapi: 3.0.3
+info:
+  title: Payment Service
+  version: 1.0.0
+  description: Charges money through the mock gateway. Repeating a request with the same Idempotency-Key never causes a second charge.
+servers:
+  - url: http://localhost:3003
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200': { description: Service is up }
+  /api/v1/payments:
+    post:
+      summary: Charge a payment (idempotent)
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: { type: string, maxLength: 200 }
+          description: Same key + same body returns the stored result (header Idempotency-Replayed true). Same key + different body returns 422.
+        - in: header
+          name: X-Request-Id
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChargeRequest' }
+      responses:
+        '201':
+          description: Payment succeeded (or replay of a successful payment)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Payment' }
+        '400': { description: Invalid input or missing Idempotency-Key, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Identical request still in progress, or first attempt failed - retry, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: PAYMENT_DECLINED, or IDEMPOTENCY_KEY_REUSED with a different payload, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '504': { description: Gateway timeout or failure (key released, safe to retry), content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    get:
+      summary: List payments of an order
+      parameters:
+        - in: query
+          name: orderId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Payments for the order
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  payments:
+                    type: array
+                    items: { $ref: '#/components/schemas/Payment' }
+        '400': { description: Missing orderId, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /api/v1/payments/{id}:
+    get:
+      summary: Get a payment
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The payment
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Payment' }
+        '404': { description: Not found, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+components:
+  schemas:
+    ChargeRequest:
+      type: object
+      required: [orderId, amount]
+      properties:
+        orderId: { type: string, example: order-1001 }
+        amount: { type: number, minimum: 0.01, example: 499.5 }
+    Payment:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        orderId: { type: string }
+        amount: { type: number }
+        status: { type: string, enum: [SUCCESS, FAILED] }
+        gatewayRef: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string, example: PAYMENT_DECLINED }
+            message: { type: string }
+            requestId: { type: string }
