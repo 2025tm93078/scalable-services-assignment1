@@ -1,0 +1,37 @@
+{"level":30,"time":1792830217675,"service":"payment","port":3003,"msg":"payment listening"}
+{"level":30,"time":1792830255555,"service":"payment","requestId":"79eccefb-48d2-42c5-9ede-2ee5b27f1a01","method":"POST","path":"/api/v1/payments","msg":"request received"}
+{"level":30,"time":1792830256333,"service":"payment","requestId":"79eccefb-48d2-42c5-9ede-2ee5b27f1a01","key":"case1-1792830255455","paymentId":"8cc5bdeb-5372-4557-8516-6a1ab6e85dc9","status":"SUCCESS","msg":"payment processed and response stored"}
+{"level":30,"time":1792830256351,"service":"payment","requestId":"79eccefb-48d2-42c5-9ede-2ee5b27f1a01","status":201,"msg":"request completed"}
+{"level":30,"time":1792830256355,"service":"payment","requestId":"89f95b2c-23d4-4b1f-81f7-b681134d029e","method":"POST","path":"/api/v1/payments","msg":"request received"}
+{"level":30,"time":1792830256358,"service":"payment","requestId":"89f95b2c-23d4-4b1f-81f7-b681134d029e","key":"case1-1792830255455","msg":"idempotency key already seen: replay path"}
+{"level":30,"time":1792830256363,"service":"payment","requestId":"89f95b2c-23d4-4b1f-81f7-b681134d029e","status":201,"msg":"request completed"}
+{"level":30,"time":1792830256372,"service":"payment","requestId":"a35d6533-be39-4274-8863-90ed74888dee","method":"GET","path":"/api/v1/payments?orderId=order-c1-1792830255455","msg":"request received"}
+{"level":30,"time":1792830256381,"service":"payment","requestId":"a35d6533-be39-4274-8863-90ed74888dee","status":200,"msg":"request completed"}
+{"level":30,"time":1792830256384,"service":"payment","requestId":"52f13957-1360-4d6f-922b-17a7e2fe1474","method":"POST","path":"/api/v1/payments","msg":"request received"}
+{"level":30,"time":1792830256385,"service":"payment","requestId":"52f13957-1360-4d6f-922b-17a7e2fe1474","key":"case1-1792830255455","msg":"idempotency key already seen: replay path"}
+{"level":40,"time":1792830256387,"service":"payment","requestId":"52f13957-1360-4d6f-922b-17a7e2fe1474","code":"IDEMPOTENCY_KEY_REUSED","status":422,"msg":"This Idempotency-Key was already used with a different request payload"}
+{"level":30,"time":1792830256388,"service":"payment","requestId":"52f13957-1360-4d6f-922b-17a7e2fe1474","status":422,"msg":"request completed"}
+{"level":30,"time":1792830256390,"service":"payment","requestId":"a10df7d2-efbb-473f-b724-50d3f238dc52","method":"GET","path":"/api/v1/payments?orderId=order-c1-1792830255455","msg":"request received"}
+{"level":30,"time":1792830256394,"service":"payment","requestId":"a10df7d2-efbb-473f-b724-50d3f238dc52","status":200,"msg":"request completed"}
+{"level":30,"time":1792830256401,"service":"payment","requestId":"706a8b9d-4a72-4b71-a8a7-3e5af0ad9f57","method":"POST","path":"/api/v1/payments","msg":"request received"}
+{"level":30,"time":1792830256401,"service":"payment","requestId":"49e6e5b1-3a0b-4dde-9ea7-442688be2560","method":"POST","path":"/api/v1/payments","msg":"request received"}
+{"level":30,"time":1792830256406,"service":"payment","requestId":"62665b77-35e7-4908-b611-be606785bfd1","method":"POST","path":"/api/v1/payments","msg":"request received"}
+{"level":30,"time":1792830256410,"service":"payment","requestId":"b233324e-fd83-4551-81ab-5edb4d7cd93a","method":"POST","path":"/api/v1/payments","msg":"request received"}
+{"level":30,"time":1792830256413,"service":"payment","requestId":"be607e43-51dd-4b1a-b24c-8226e9233d6a","method":"POST","path":"/api/v1/payments","msg":"request received"}
+{"level":30,"time":1792830256488,"service":"payment","requestId":"62665b77-35e7-4908-b611-be606785bfd1","key":"case3-1792830255455","msg":"idempotency key already seen: replay path"}
+{"level":30,"time":1792830256495,"service":"payment","requestId":"49e6e5b1-3a0b-4dde-9ea7-442688be2560","key":"case3-1792830255455","msg":"idempotency key already seen: replay path"}
+{"level":30,"time":1792830256507,"service":"payment","requestId":"be607e43-51dd-4b1a-b24c-8226e9233d6a","key":"case3-1792830255455","msg":"idempotency key already seen: replay path"}
+{"level":30,"time":1792830256507,"service":"payment","requestId":"b233324e-fd83-4551-81ab-5edb4d7cd93a","key":"case3-1792830255455","msg":"idempotency key already seen: replay path"}
+{"level":30,"time":1792830256959,"service":"payment","requestId":"706a8b9d-4a72-4b71-a8a7-3e5af0ad9f57","key":"case3-1792830255455","paymentId":"c5972a6f-b96e-4bd1-ba76-42c27118ba6e","status":"SUCCESS","msg":"payment processed and response stored"}
+{"level":30,"time":1792830256967,"service":"payment","requestId":"706a8b9d-4a72-4b71-a8a7-3e5af0ad9f57","status":201,"msg":"request completed"}
+{"level":30,"time":1792830257069,"service":"payment","requestId":"49e6e5b1-3a0b-4dde-9ea7-442688be2560","status":201,"msg":"request completed"}
+{"level":30,"time":1792830257072,"service":"payment","requestId":"62665b77-35e7-4908-b611-be606785bfd1","status":201,"msg":"request completed"}
+49c0-a24d-642a4f397523","status":200,"msg":"request completed"}
+{"level":30,"time":1792830257371,"service":"payment","requestId":"748dda1c-940e-45d3-a0a2-d23bfd835c2f","method":"POST","path":"/api/v1/payments","msg":"request received"}
+{"level":30,"time":1792830257486,"service":"payment","requestId":"748dda1c-940e-45d3-a0a2-d23bfd835c2f","key":"case5-1792830255455","paymentId":"98735dbc-18cb-4ff2-9af6-c9bc87c6d5d1","status":"SUCCESS","msg":"payment processed and response stored"}
+{"level":30,"time":1792830257494,"service":"payment","requestId":"748dda1c-940e-45d3-a0a2-d23bfd835c2f","status":201,"msg":"request completed"}
+{"level":30,"time":1792830257496,"service":"payment","requestId":"cc75f794-4bb2-40c0-b758-d27036505f63","method":"GET","path":"/api/v1/payments?orderId=order-c5-1792830255455","msg":"request received"}
+{"level":30,"time":1792830257498,"service":"payment","requestId":"cc75f794-4bb2-40c0-b758-d27036505f63","status":200,"msg":"request completed"}
+{"level":30,"time":1792830257501,"service":"payment","requestId":"22a124c9-1d0c-4f0b-b0e9-16cd76f699cb","method":"POST","path":"/api/v1/payments","msg":"request received"}
+{"level":40,"time":1792830257501,"service":"payment","requestId":"22a124c9-1d0c-4f0b-b0e9-16cd76f699cb","code":"MISSING_IDEMPOTENCY_KEY","status":400,"msg":"Idempotency-Key header is required (max 200 chars)"}
+{"level":30,"time":1792830257502,"service":"payment","requestId":"22a124c9-1d0c-4f0b-b0e9-16cd76f699cb","status":400,"msg":"request completed"}

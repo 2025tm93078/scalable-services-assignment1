@@ -1,0 +1,19 @@
+-- captured 2026-10-24T08:26:46Z
+-- payments: one row per order despite repeated and concurrent requests
+        order_id        | status  | gateway_ref | rows_for_order 
+------------------------+---------+-------------+----------------
+ order-c1-1792830255455 | SUCCESS | gw_8nq87395 |              1
+ order-c3-1792830255455 | SUCCESS | gw_b6i3v26d |              1
+ order-c4-1792830255455 | FAILED  |             |              1
+ order-c5-1792830255455 | SUCCESS | gw_29js172u |              1
+(4 rows)
+
+-- idempotency_keys: stored fingerprint, state and response status
+         key         | request_hash | state | status_code 
+---------------------+--------------+-------+-------------
+ case1-1792830255455 | 79bcfe8a6cb6 | DONE  |         201
+ case3-1792830255455 | a81c4b15ad15 | DONE  |         201
+ case4-1792830255455 | 55bf85fea7d1 | DONE  |         422
+ case5-1792830255455 | 1dd186131dd0 | DONE  |         201
+(4 rows)
+
