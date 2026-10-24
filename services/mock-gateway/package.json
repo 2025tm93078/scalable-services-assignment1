@@ -1,20 +1,13 @@
 {
-  "name": "mock-gateway-service",
+  "name": "mock-gateway",
   "version": "1.0.0",
-  "private": true,
-  "main": "src/server.js",
-  "scripts": {
-    "start": "node src/server.js",
-    "dev": "node --watch src/server.js",
-    "test": "jest"
-  },
+  "description": "Mock payment provider with controllable latency and failures",
+  "main": "src/index.js",
+  "scripts": { "start": "node src/index.js" },
   "dependencies": {
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "pino": "^9.3.2"
-  },
-  "devDependencies": {
-    "jest": "^29.7.0",
-    "supertest": "^7.0.0"
+    "pino": "^9.3.2",
+    "zod": "^3.23.8"
   }
 }
