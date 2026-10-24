@@ -113,3 +113,73 @@ evidence/        proof per challenge
 docs/            diagrams and OpenAPI specs
 db/              Postgres init SQL
 ```
+## Payment, Notification and Mock Gateway (Person 3)
+
+| Service | Port | Env vars (see each `.env.example`) |
+|---|---|---|
+| mock-gateway | 3005 | `PORT`, `LATENCY_MS`, `FAIL_RATE` |
+| payment | 3003 | `PORT`, `DATABASE_URL`, `GATEWAY_URL`, `GATEWAY_TIMEOUT_MS`, `IDEMPOTENCY_WAIT_MS` |
+| notification | 3004 | `PORT`, `DATABASE_URL` |
+
+### Run
+
+The databases `payment_db` and `notification_db` (each with its own user) come from the SQL file in `db/`, set up in the same step as the other services. Tables are created automatically when each service starts. If your Postgres is not on port 5432, change it in `DATABASE_URL` in each `.env`.
+
+For each of `mock-gateway`, `payment`, `notification` (start mock-gateway first):
+
+    cd services/<name>
+    cp .env.example .env
+    npm install
+    npm start
+
+Health checks: `curl localhost:3005/health`, `curl localhost:3003/health`, `curl localhost:3004/health`.
+Swagger UI: http://localhost:3003/api-docs and http://localhost:3004/api-docs
+
+### Test
+
+    cd services/payment && npm test        # BR5 + API tests (13 tests)
+    cd services/notification && npm test   # BR6 + API tests (9 tests)
+    node scripts/idempotency-test.js       # Challenge 2 (needs mock-gateway and payment running)
+
+On Git Bash for Windows, if you pipe the output (`| tee file`), write `command node ...` to avoid the "stdout is not a tty" error.
+
+### Business rules (Person 3)
+
+| ID | Rule | Code | Test |
+|---|---|---|---|
+| BR5 | The same Idempotency-Key never produces two charges | `services/payment/src/services/payments.service.js` | `services/payment/tests/payments.service.test.js` |
+| BR6 | A notification is sent only for CONFIRMED orders | `services/notification/src/services/notifications.service.js` | `services/notification/tests/notifications.service.test.js` |
+
+### API contract for the Order service
+
+Charge:
+
+    curl -X POST localhost:3003/api/v1/payments \
+      -H 'Content-Type: application/json' -H 'Idempotency-Key: pay-<orderId>' -H 'X-Request-Id: <id>' \
+      -d '{"orderId":"<orderId>","amount":499.5}'
+
+- 201 `{ id, orderId, amount, status:"SUCCESS", gatewayRef, createdAt }`
+- 422 `PAYMENT_DECLINED` (payment failed, so release stock and cancel the order)
+- 504 `GATEWAY_TIMEOUT` (safe to retry with the SAME key)
+- 409 `REQUEST_IN_PROGRESS` or `REQUEST_FAILED_RETRY` (retry shortly with the same key)
+- 400 invalid input or missing key; 422 `IDEMPOTENCY_KEY_REUSED` if the key is reused with a different body
+
+Notify (call only after the order is CONFIRMED):
+
+    curl -X POST localhost:3004/api/v1/notifications \
+      -H 'Content-Type: application/json' -H 'X-Request-Id: <id>' \
+      -d '{"orderId":"<orderId>","orderStatus":"CONFIRMED"}'
+
+- 201 stored; 422 `ORDER_NOT_CONFIRMED` if `orderStatus` is not `CONFIRMED` (`type` is optional, default `ORDER_CONFIRMED`)
+
+Force a payment failure for the saga demo:
+
+    curl -X POST localhost:3005/admin/fail-mode -H 'Content-Type: application/json' -d '{"mode":"always"}'   # decline every charge
+    curl -X POST localhost:3005/admin/fail-mode -H 'Content-Type: application/json' -d '{"mode":"error"}'    # gateway returns 500
+    curl -X POST localhost:3005/admin/fail-mode -H 'Content-Type: application/json' -d '{"mode":"off"}'      # back to normal
+
+Other gateway switches: `POST /admin/latency {"ms":500}`, `POST /admin/reset`, `GET /admin/state`.
+
+### Error format (all services)
+
+    { "error": { "code": "PAYMENT_DECLINED", "message": "...", "requestId": "..." } }
