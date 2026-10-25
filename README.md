@@ -2,7 +2,7 @@
 
 E-commerce checkout system built with microservices.
 
-**Team:** Person 1 (Inventory), Person 2 (Order), Person 3 (Payment + Notification)  
+**Team:** Person 1 (Inventory), Person 2 (Order), Person 3 (Payment + Notification), Person 4 (Catalog)
 **Stack:** Node.js, Express, PostgreSQL  
 **Course:** SEZG583 — BITS Pilani WILP
 
@@ -17,6 +17,7 @@ E-commerce checkout system built with microservices.
 | Payment       | 3003 | Payments with idempotency               |
 | Notification  | 3004 | Confirmation notifications              |
 | Mock Gateway  | 3005 | Simulated payment provider              |
+| Catalog       | 3006 | Product details and catalog management  |
 
 ---
 
@@ -70,12 +71,28 @@ npm install
 npm start
 ```
 
+### 4. Start Catalog service (Person 4)
+
+```bash
+cd services/catalog
+cp .env.example .env
+npm install
+npm run dev
+```
+Open `http://localhost:3006/health` — `should return {"status":"OK","service":"catalog"}`
+API docs: `http://localhost:3006/api-docs`
+
 ---
 
 ## Run Tests
 
 ```bash
 cd services/inventory
+npm test
+```
+
+```bash
+cd services/catalog
 npm test
 ```
 
@@ -183,3 +200,15 @@ Other gateway switches: `POST /admin/latency {"ms":500}`, `POST /admin/reset`, `
 ### Error format (all services)
 
     { "error": { "code": "PAYMENT_DECLINED", "message": "...", "requestId": "..." } }
+## Catalog Service (Person 4)
+
+| Service | Port | Env vars (see `.env.example`) |
+|---|---|---|
+| catalog | 3006 | `PORT`, `DATABASE_URL` |
+
+### Business rules (Person 4)
+
+| ID | Rule | Code | Test |
+|---|---|---|---|
+| BR7 | A product price must be strictly greater than zero | `services/catalog/src/services/productService.js` | `services/catalog/tests/productService.test.js` |
+| BR8 | A product must belong to a predefined valid category | `services/catalog/src/services/productService.js` | `services/catalog/tests/productService.test.js` |
