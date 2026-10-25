@@ -8,8 +8,8 @@ const productSchema = z.object({
     // BR7: Price must be strictly greater than zero
     price: z.number().positive("BR7 Violation: Price must be greater than zero"),
     // BR8: Must belong to a valid category
-    category: z.enum(['Electronics', 'Clothing', 'Books'], {
-        errorMap: () => ({ message: "BR8 Violation: Invalid category" })
+    category: z.string().refine(val => ['Electronics', 'Clothing', 'Books'].includes(val), {
+        message: "BR8 Violation: Invalid category"
     })
 });
 
