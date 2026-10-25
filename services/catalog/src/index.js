@@ -6,6 +6,7 @@ const pinoHttp = require('pino-http');
 const crypto = require('crypto');
 
 const app = express();
+const productRoutes = require('./routes/productRoutes');
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 
 app.use(express.json());
@@ -24,6 +25,9 @@ app.use(pinoHttp({ logger, genReqId: req => req.id }));
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'OK', service: 'catalog' });
 });
+
+// Register your catalog routes
+app.use('/api/v1/catalog', productRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {
