@@ -4,7 +4,9 @@ const express = require('express');
 const pino = require('pino');
 const pinoHttp = require('pino-http');
 const crypto = require('crypto');
-
+const swaggerUi = require('swagger-ui-express');
+const YAML = require('yamljs');
+const path = require('path');
 const app = express();
 const productRoutes = require('./routes/productRoutes');
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
@@ -28,6 +30,10 @@ app.get('/health', (req, res) => {
 
 // Register your catalog routes
 app.use('/api/v1/catalog', productRoutes);
+
+// Serve OpenAPI Documentation
+const swaggerDocument = YAML.load(path.join(__dirname, '../docs/openapi.yaml'));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Global Error Handler
 app.use((err, req, res, next) => {
