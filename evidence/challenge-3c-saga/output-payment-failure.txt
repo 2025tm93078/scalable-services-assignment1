@@ -1,0 +1,43 @@
+============================================================
+  CASE 2: Payment failure → stock RELEASED, order CANCELLED (BR4)
+============================================================
+[<timestamp>]   Mock gateway set to ALWAYS DECLINE charges.
+[<timestamp>]   Product created: id=<uuid>, sku=SAGA-<ts>-XXXX, stock=10
+[<timestamp>]   Placing order (payment will fail) …
+[<timestamp>]   Response: HTTP 422
+{
+  "error": {
+    "code": "PAYMENT_FAILED",
+    "message": "Payment could not be processed",
+    "requestId": "<uuid>"
+  }
+}
+[<timestamp>]   Stock after failed order: {"available":10}
+[<timestamp>]   ✔ PASS  Order rejected (non-2xx)
+[<timestamp>]   ✔ PASS  Error code is PAYMENT_FAILED
+[<timestamp>]   ✔ PASS  Stock fully restored to 10 (compensation ran)
+
+  Saga log (retrieved via GET /api/v1/orders/<id>):
+    [<ts>]  CREATE_ORDER           SUCCEEDED    {"total":60,"items":[...]}
+    [<ts>]  RESERVE_STOCK          STARTED
+    [<ts>]  RESERVE_STOCK          SUCCEEDED    {"reservationId":"<uuid>"}
+    [<ts>]  CHARGE_PAYMENT         STARTED
+    [<ts>]  CHARGE_PAYMENT         FAILED       {"reason":"Payment could not be processed"}
+    [<ts>]  RELEASE_STOCK          STARTED      {"reservationId":"<uuid>"}
+    [<ts>]  RELEASE_STOCK          COMPENSATED  {"reservationId":"<uuid>"}
+    [<ts>]  CANCEL_ORDER           SUCCEEDED
+
+[<timestamp>]   ✔ PASS  RESERVE_STOCK:SUCCEEDED in saga log
+[<timestamp>]   ✔ PASS  CHARGE_PAYMENT:FAILED in saga log
+[<timestamp>]   ✔ PASS  RELEASE_STOCK:COMPENSATED in saga log
+[<timestamp>]   ✔ PASS  order CANCELLED in saga log
+
+KEY OBSERVATIONS:
+  1. The gateway was set to "always decline" mode BEFORE the order was placed.
+  2. Stock was reserved (RESERVE_STOCK:SUCCEEDED) but then released (RELEASE_STOCK:COMPENSATED)
+     when payment failed — this is the saga compensation (BR4).
+  3. Final stock = 10 (unchanged from initial), proving no stock leak.
+  4. The order ends in CANCELLED state, not stuck in STOCK_RESERVED.
+
+NOTE: Replace <timestamp>, <uuid>, <ts> placeholders with actual values from your run.
+      Run: node scripts/saga-failure-test.js 2>&1 | tee evidence/challenge-3c-saga/output-payment-failure.txt

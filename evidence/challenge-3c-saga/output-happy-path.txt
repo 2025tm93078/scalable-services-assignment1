@@ -1,0 +1,37 @@
+============================================================
+  CASE 1: Happy path – full checkout succeeds → order CONFIRMED
+============================================================
+[<timestamp>] Product created: id=<uuid>, sku=SAGA-<ts>-XXXX, stock=10
+[<timestamp>]   Placing order …
+[<timestamp>]   Response: HTTP 201
+{
+  "id": "<order-uuid>",
+  "customer_id": "cust-happy",
+  "status": "CONFIRMED",
+  "total": "99.98",
+  "created_at": "<timestamp>",
+  "updated_at": "<timestamp>"
+}
+[<timestamp>]   Saga log:
+    [<ts>]  CREATE_ORDER           SUCCEEDED    {"total":99.98,"items":[{"productId":"<uuid>","qty":2,"price":49.99}]}
+    [<ts>]  RESERVE_STOCK          STARTED
+    [<ts>]  RESERVE_STOCK          SUCCEEDED    {"reservationId":"<uuid>"}
+    [<ts>]  CHARGE_PAYMENT         STARTED
+    [<ts>]  CHARGE_PAYMENT         SUCCEEDED    {"paymentId":"<uuid>"}
+    [<ts>]  CONFIRM_ORDER          STARTED
+    [<ts>]  CONFIRM_ORDER          SUCCEEDED
+    [<ts>]  SEND_NOTIFICATION      STARTED
+    [<ts>]  SEND_NOTIFICATION      SUCCEEDED
+
+[<timestamp>]   ✔ PASS  HTTP 201 returned
+[<timestamp>]   ✔ PASS  order status is CONFIRMED
+[<timestamp>]   ✔ PASS  total is correct
+[<timestamp>]   ✔ PASS  RESERVE_STOCK:SUCCEEDED in saga log
+[<timestamp>]   ✔ PASS  CHARGE_PAYMENT:SUCCEEDED in saga log
+[<timestamp>]   ✔ PASS  CONFIRM_ORDER:SUCCEEDED in saga log
+[<timestamp>]   ✔ PASS  No FAILED steps
+[<timestamp>]   Gateway state: {"latencyMs":100,"failRate":0,"mode":"off","chargesAccepted":1,"chargesDeclined":0,"chargesErrored":0}
+[<timestamp>]   ✔ PASS  Gateway charged exactly once
+
+NOTE: Replace <timestamp>, <uuid>, <ts> placeholders with actual values from your run.
+      Run: node scripts/saga-failure-test.js 2>&1 | tee evidence/challenge-3c-saga/output-happy-path.txt

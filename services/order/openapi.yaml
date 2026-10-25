@@ -1,0 +1,248 @@
+openapi: "3.0.3"
+info:
+  title: Order Service API
+  version: "1.0.0"
+  description: |
+    Coordinates the checkout saga: reserves stock, charges payment, confirms the
+    order and sends a notification. Owns the order state machine (BR3) and the
+    saga compensation logic (BR4).
+servers:
+  - url: http://localhost:3002
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      operationId: healthCheck
+      responses:
+        "200":
+          description: Service is UP
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  service:
+                    type: string
+                    example: order
+                  status:
+                    type: string
+                    example: UP
+
+  /api/v1/orders:
+    post:
+      summary: Place an order (runs the full checkout saga)
+      operationId: createOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrderRequest"
+            example:
+              customerId: "cust-42"
+              items:
+                - productId: "prod-7"
+                  qty: 2
+                  price: 49.99
+      responses:
+        "201":
+          description: Order confirmed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "409":
+          $ref: "#/components/responses/ConflictError"
+        "502":
+          $ref: "#/components/responses/DownstreamError"
+
+  /api/v1/orders/{id}:
+    get:
+      summary: Get an order with its items and saga log
+      operationId: getOrder
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Order found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderDetail"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /api/v1/orders/{id}/cancel:
+    post:
+      summary: Manually cancel an order (releases stock if reserved)
+      operationId: cancelOrder
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Order cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "409":
+          $ref: "#/components/responses/ConflictError"
+
+components:
+  schemas:
+    OrderItem:
+      type: object
+      required: [productId, qty, price]
+      properties:
+        productId:
+          type: string
+        qty:
+          type: integer
+          minimum: 1
+        price:
+          type: number
+          minimum: 0
+
+    CreateOrderRequest:
+      type: object
+      required: [customerId, items]
+      properties:
+        customerId:
+          type: string
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/OrderItem"
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        customer_id:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, STOCK_RESERVED, PAID, CONFIRMED, CANCELLED]
+        total:
+          type: number
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    SagaStep:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        order_id:
+          type: string
+          format: uuid
+        step:
+          type: string
+        status:
+          type: string
+          enum: [STARTED, SUCCEEDED, FAILED, COMPENSATED]
+        detail:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+
+    OrderDetail:
+      allOf:
+        - $ref: "#/components/schemas/Order"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/OrderItem"
+            sagaSteps:
+              type: array
+              items:
+                $ref: "#/components/schemas/SagaStep"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            requestId:
+              type: string
+
+  responses:
+    ValidationError:
+      description: Input validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: VALIDATION_ERROR
+              message: "items: at least one item is required"
+              requestId: "abc-123"
+    ConflictError:
+      description: Conflict (e.g. insufficient stock, invalid state transition)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: STOCK_RESERVATION_FAILED
+              message: "Only 1 unit available"
+              requestId: "abc-123"
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: ORDER_NOT_FOUND
+              message: "Order abc-123 not found"
+              requestId: "abc-123"
+    DownstreamError:
+      description: Downstream service unavailable
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: PAYMENT_FAILED
+              message: "Payment could not be processed"
+              requestId: "abc-123"

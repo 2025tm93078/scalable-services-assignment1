@@ -1,0 +1,91 @@
+-- ─────────────────────────────────────────────────────────────────────────────
+-- DB State Evidence: Challenge 3C – Saga with Compensation
+-- Run these queries against order_db and inventory_db after running the test.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- ── order_db ─────────────────────────────────────────────────────────────────
+
+-- 1. All orders and their final statuses
+SELECT id, customer_id, status, total, created_at, updated_at
+FROM orders
+ORDER BY created_at DESC
+LIMIT 10;
+
+-- EXPECTED (for 3 test cases):
+-- customer_id              | status
+-- -------------------------+--------------
+-- cust-happy               | CONFIRMED   ← Case 1 happy path
+-- cust-fail-payment        | CANCELLED   ← Case 2 payment failure
+-- cust-no-stock            | CANCELLED   ← Case 3 insufficient stock
+
+
+-- 2. Full saga log for all recent orders (the main evidence for compensation)
+SELECT
+  o.customer_id,
+  o.status AS order_status,
+  sl.step,
+  sl.status AS step_status,
+  sl.detail,
+  sl.created_at
+FROM orders o
+JOIN saga_log sl ON sl.order_id = o.id
+ORDER BY o.created_at DESC, sl.created_at ASC;
+
+-- EXPECTED for Case 2 (payment failure):
+-- step                 | step_status
+-- ---------------------+-------------
+-- CREATE_ORDER         | SUCCEEDED
+-- RESERVE_STOCK        | STARTED
+-- RESERVE_STOCK        | SUCCEEDED     ← stock was reserved
+-- CHARGE_PAYMENT       | STARTED
+-- CHARGE_PAYMENT       | FAILED        ← payment declined
+-- RELEASE_STOCK        | STARTED       ← compensation begins
+-- RELEASE_STOCK        | COMPENSATED   ← stock released back
+-- CANCEL_ORDER         | SUCCEEDED     ← order cancelled
+
+
+-- 3. Saga log for Case 1 (happy path)
+SELECT sl.step, sl.status AS step_status, sl.created_at
+FROM orders o
+JOIN saga_log sl ON sl.order_id = o.id
+WHERE o.customer_id = 'cust-happy'
+ORDER BY sl.created_at ASC;
+
+-- EXPECTED:
+-- CREATE_ORDER     | SUCCEEDED
+-- RESERVE_STOCK    | STARTED
+-- RESERVE_STOCK    | SUCCEEDED
+-- CHARGE_PAYMENT   | STARTED
+-- CHARGE_PAYMENT   | SUCCEEDED
+-- CONFIRM_ORDER    | STARTED
+-- CONFIRM_ORDER    | SUCCEEDED
+-- SEND_NOTIFICATION| STARTED
+-- SEND_NOTIFICATION| SUCCEEDED
+
+
+-- ── inventory_db ─────────────────────────────────────────────────────────────
+
+-- 4. Stock levels after the test (should match initial stock for Case 2 and 3)
+SELECT p.sku, p.name, s.available
+FROM products p
+JOIN stock s ON s.product_id = p.id
+WHERE p.sku LIKE 'SAGA-%'
+ORDER BY p.created_at DESC
+LIMIT 10;
+
+-- EXPECTED:
+-- Products created for Case 1 (qty=2 sold) → available = 8
+-- Products created for Case 2 (compensation ran) → available = 10 (RESTORED)
+-- Products created for Case 3 (never reserved) → available = 1
+
+
+-- 5. Reservation statuses (key evidence for compensation)
+SELECT r.id, r.order_id, r.product_id, r.qty, r.status, r.created_at
+FROM reservations r
+ORDER BY r.created_at DESC
+LIMIT 10;
+
+-- EXPECTED:
+-- Case 1: status = CONFIRMED
+-- Case 2: status = RELEASED   ← compensation: release ran
+-- Case 3: no reservation row  ← never got past stock check

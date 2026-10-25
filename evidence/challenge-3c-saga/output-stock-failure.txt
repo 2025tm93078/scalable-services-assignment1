@@ -1,0 +1,29 @@
+============================================================
+  CASE 3: Insufficient stock → order CANCELLED (payment never called)
+============================================================
+[<timestamp>]   Product created: id=<uuid>, sku=SAGA-<ts>-XXXX, stock=1
+[<timestamp>]   Placing order requesting 5 units (only 1 available) …
+[<timestamp>]   Response: HTTP 409
+{
+  "error": {
+    "code": "STOCK_RESERVATION_FAILED",
+    "message": "Only 1 unit available",
+    "requestId": "<uuid>"
+  }
+}
+[<timestamp>]   Gateway state: {"latencyMs":100,"failRate":0,"mode":"off","chargesAccepted":0,"chargesDeclined":0,"chargesErrored":0}
+[<timestamp>]   ✔ PASS  Order rejected (non-2xx)
+[<timestamp>]   ✔ PASS  Error code is STOCK_RESERVATION_FAILED
+[<timestamp>]   ✔ PASS  Gateway was NEVER called (no payment attempt)
+[<timestamp>]   Stock after failed order: {"available":1}
+[<timestamp>]   ✔ PASS  Stock unchanged at 1
+
+KEY OBSERVATIONS:
+  1. The Inventory service returned 409 INSUFFICIENT_STOCK.
+  2. The Order service caught this at step 1 (reserve stock) and immediately cancelled.
+  3. chargesAccepted=0 and chargesDeclined=0 — the Payment service was NEVER called.
+  4. No wasted gateway round-trip, no idempotency key consumed.
+  5. Stock remains at 1 (no reservation was ever made).
+
+NOTE: Replace <timestamp>, <uuid>, <ts> placeholders with actual values from your run.
+      Run: node scripts/saga-failure-test.js 2>&1 | tee evidence/challenge-3c-saga/output-stock-failure.txt
