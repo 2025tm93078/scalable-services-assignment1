@@ -1,0 +1,55 @@
+# Compose file for the Task 3 troubleshooting demo (Person 3).
+# Run from the repo root:  docker compose -f docker-compose.troubleshoot.yml up -d --build
+#
+# Postgres is published on host port 5433 so it does not clash with a Postgres
+# already installed on Windows (5432). Containers talk to it as postgres:5432.
+# It loads the SQL files in ./db on first start (creates the databases and users).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mock-gateway:
+    build: ./services/mock-gateway
+    environment:
+      PORT: "3005"
+      LATENCY_MS: "300"
+      FAIL_RATE: "0"
+    ports:
+      - "3005:3005"
+
+  payment:
+    build: ./services/payment
+    environment:
+      PORT: "3003"
+      DATABASE_URL: postgres://payment_user:payment_pass@postgres:5432/payment_db
+      GATEWAY_URL: http://mock-gateway:3005
+    ports:
+      - "3003:3003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mock-gateway:
+        condition: service_started
+
+  notification:
+    build: ./services/notification
+    environment:
+      PORT: "3004"
+      DATABASE_URL: postgres://notification_user:notification_pass@postgres:5432/notification_db
+    ports:
+      - "3004:3004"
+    depends_on:
+      postgres:
+        condition: service_healthy

@@ -1,0 +1,40 @@
+[2026-10-31T06:50:04.911Z] Idempotency test run 1793429404910 against http://localhost:3003 (gateway http://localhost:3005)
+[2026-10-31T06:50:05.012Z] CASE 1: sequential repeat (same key, same payload)
+[2026-10-31T06:50:05.563Z]   first : 201 replayed=false id=79c6f816-ae59-4c27-a781-2910c5779335
+[2026-10-31T06:50:05.563Z]   second: 201 replayed=true id=79c6f816-ae59-4c27-a781-2910c5779335
+[2026-10-31T06:50:05.563Z]   PASS  first call returns 201 and is not a replay
+[2026-10-31T06:50:05.563Z]   PASS  second call returns the same payment (replay)
+[2026-10-31T06:50:05.570Z]   PASS  exactly one payment row for the order
+[2026-10-31T06:50:05.570Z] CASE 2: same key with a different payload
+[2026-10-31T06:50:05.574Z]   response: 422 {"error":{"code":"IDEMPOTENCY_KEY_REUSED","message":"This Idempotency-Key was already used with a different request payload","requestId":"7fdba156-99f5-4c26-993b-43cf22c13292"}}
+[2026-10-31T06:50:05.574Z]   PASS  rejected with 422 IDEMPOTENCY_KEY_REUSED
+[2026-10-31T06:50:05.578Z]   PASS  still exactly one payment row
+[2026-10-31T06:50:05.578Z] CASE 3: 5 identical requests fired at the same instant (Promise.all)
+[2026-10-31T06:50:06.119Z]   request 1: 201 replayed=false id=c8fa4909-9cb8-49b2-b43d-000b042cfd2c
+[2026-10-31T06:50:06.119Z]   request 2: 201 replayed=true id=c8fa4909-9cb8-49b2-b43d-000b042cfd2c
+[2026-10-31T06:50:06.119Z]   request 3: 201 replayed=true id=c8fa4909-9cb8-49b2-b43d-000b042cfd2c
+[2026-10-31T06:50:06.119Z]   request 4: 201 replayed=true id=c8fa4909-9cb8-49b2-b43d-000b042cfd2c
+[2026-10-31T06:50:06.119Z]   request 5: 201 replayed=true id=c8fa4909-9cb8-49b2-b43d-000b042cfd2c
+[2026-10-31T06:50:06.119Z]   PASS  all requests returned 201
+[2026-10-31T06:50:06.119Z]   PASS  all requests returned the same payment id
+[2026-10-31T06:50:06.119Z]   PASS  exactly one request did the real work (others replayed)
+[2026-10-31T06:50:06.122Z]   PASS  exactly ONE payment row in the database
+[2026-10-31T06:50:06.123Z]   gateway state: {"latencyMs":500,"failRate":0,"mode":"off","chargesAccepted":1,"chargesDeclined":0,"chargesErrored":0}
+[2026-10-31T06:50:06.124Z]   PASS  the gateway charged exactly once
+[2026-10-31T06:50:06.124Z] CASE 4 (failure): declined payment is replayed, not re-charged
+[2026-10-31T06:50:06.245Z]   first : 422 PAYMENT_DECLINED replayed=false
+[2026-10-31T06:50:06.245Z]   second: 422 PAYMENT_DECLINED replayed=true
+[2026-10-31T06:50:06.245Z]   PASS  first call 422 PAYMENT_DECLINED
+[2026-10-31T06:50:06.245Z]   PASS  repeat returns the same 422 as a replay
+[2026-10-31T06:50:06.247Z]   PASS  gateway was asked only once
+[2026-10-31T06:50:06.247Z] CASE 5 (failure): gateway error -> 504, then retry with the same key succeeds
+[2026-10-31T06:50:06.361Z]   during outage: 504 GATEWAY_TIMEOUT
+[2026-10-31T06:50:06.361Z]   PASS  504 GATEWAY_TIMEOUT while the gateway is failing
+[2026-10-31T06:50:06.365Z]   PASS  no payment row was created during the outage
+[2026-10-31T06:50:06.480Z]   after recovery (same key): 201 replayed=false id=f5c2c577-3ecf-47a2-af3b-319b7487e8c9
+[2026-10-31T06:50:06.480Z]   PASS  retry with the same key succeeds (201)
+[2026-10-31T06:50:06.482Z]   PASS  exactly one payment row after the retry
+[2026-10-31T06:50:06.482Z] CASE 6 (failure): missing Idempotency-Key
+[2026-10-31T06:50:06.484Z]   response: 400 {"error":{"code":"MISSING_IDEMPOTENCY_KEY","message":"Idempotency-Key header is required (max 200 chars)","requestId":"7dd04513-7576-4417-8d8c-edcc8c010a28"}}
+[2026-10-31T06:50:06.484Z]   PASS  400 MISSING_IDEMPOTENCY_KEY
+[2026-10-31T06:50:06.485Z] RESULT: ALL CHECKS PASSED

@@ -1,0 +1,3 @@
+docker compose -f docker-compose.troubleshoot.yml logs payment
+docker compose -f docker-compose.troubleshoot.yml ps -a
+docker inspect <payment-container> --format ...
