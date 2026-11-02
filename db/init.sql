@@ -7,3 +7,5 @@ CREATE DATABASE inventory_db     OWNER inventory_user;
 CREATE DATABASE order_db         OWNER order_user;
 CREATE DATABASE payment_db       OWNER payment_user;
 CREATE DATABASE notification_db  OWNER notification_user;
+CREATE USER catalog_user WITH PASSWORD 'catalog_pass';
+CREATE DATABASE catalog_db OWNER catalog_user;
