@@ -1,20 +1,25 @@
-# Use the official Node.js 18 alpine image
+# Order service image  (Task 2 — Person 2: Priya)
+# Build:  docker build -t order-service .
 FROM node:18-alpine
 
-# Set the working directory inside the container
 WORKDIR /app
 
-# Copy package files first to leverage Docker caching
+# Copy package manifests first so Docker can cache the dependency layer
 COPY package*.json ./
 
-# Install the dependencies
-RUN npm install
+# Install production dependencies only
+RUN npm install --omit=dev
 
-# Copy the source code and OpenAPI documentation
+# Copy source code and the OpenAPI spec (used by Swagger UI at /api-docs)
 COPY src/ ./src/
+COPY openapi.yaml ./openapi.yaml
 
-# The Order service runs on port 3002
+# Order service listens on port 3002
 EXPOSE 3002
 
-# Command to start the application
+# Health check — lets 'docker compose ps' report (healthy)/(unhealthy)
+# Uses node's built-in http module; no wget/curl needed on alpine.
+HEALTHCHECK --interval=10s --timeout=5s --start-period=20s --retries=5 \
+  CMD node -e "require('http').get('http://localhost:3002/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
+
 CMD ["npm", "start"]
